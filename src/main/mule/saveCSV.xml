@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<flow name="saveCSVFlow" doc:id="11da2b86-d8f6-4199-b3d0-372eda04c37d" initialState="started">
+		<scheduler doc:name="Scheduler" doc:id="bb611246-a17a-4198-8035-6d6228fec2c4" >
+			<scheduling-strategy >
+				<cron expression="0 0 18  ?  *  *" timeZone="Asia/kolkatta"/>
+			</scheduling-strategy>
+		</scheduler>
+		<db:select doc:name="Select" doc:id="bfa4588d-ee76-4599-912d-a1cef4aaf045" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employee;]]></db:sql>
+		</db:select>
+		<file:write doc:name="Write" doc:id="de21f600-f7ec-4fb3-b1c3-28187a690e46" config-ref="File_Config" path="output/DB.csv">
+			<file:content ><![CDATA[#[output application/csv header=false
+---
+payload]]]></file:content>
+		</file:write>
+	</flow>
+</mule>

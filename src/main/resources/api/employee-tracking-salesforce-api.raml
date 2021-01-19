@@ -1,0 +1,89 @@
+#%RAML 1.0
+title: Employee-tracking-salesforce-api
+version: v1.0.1
+
+documentation:
+  - title: Employee-tracking-salesforce-api
+    content: Provides an interface for insert/update/delete Employee data to Salesforce
+
+mediaType: 
+  - application/json
+protocols: [HTTP]
+
+types:
+  Employee : !include dataType/Employee.raml
+  Emp-patch : !include dataType/Employee-Patch.raml
+
+traits:
+    standard-error-responses: !include exchange_modules/93200753-e57c-4954-a63d-d4951e7676da/standard-error-responses/1.0.0/standard-api-error-responses.raml
+    client-id-required: !include /exchange_modules/93200753-e57c-4954-a63d-d4951e7676da/client-id-enforcement-trait/1.0.1/client-id-enforcement-trait.raml
+    
+
+/employee:
+  is: [standard-error-responses, client-id-required]
+  get:
+    description: get Method used to retrieve all employees data
+    responses:
+      200:
+        body:
+          application/json:
+            type: Employee[]
+            example: !include examples/responses/getAll-employee-response.json
+  
+  post:
+    description: create a new employee
+    body:
+      application/json:
+        type: Employee[]
+        example: !include examples/request/Post-employee.json
+
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include examples/responses/post-employee-response.json
+      
+  /{id}:
+    is: [standard-error-responses,client-id-required]
+      
+    get:
+      description: retrieve specific employee by ID
+      responses:
+        200:
+          body:
+            application/json:
+              type: Employee
+              example: !include examples/responses/get-Item-byID-resonse.json
+    
+    patch:
+      description: patch method to update employee details using ID
+      body:
+        application/json:
+          type : Emp-patch
+          example: !include examples/request/Patch-employee.json
+      responses:
+        201:
+          body:
+            application/json:
+              example: !include examples/responses/patch-emplyee-response.json
+
+    delete:
+      description: delete employee by id
+      responses:
+        200:
+          body:
+            application/json:
+              example: !include examples/responses/delete-employee-response.json
+                
+                
+
+                
+
+      
+     
+              
+          
+    
+  
+  
+  

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<error-handler name="common-error-handlerError_Handler" doc:id="df9d0f89-4bfd-4993-94f7-bbc4e6348dc3" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2f736ae8-fe64-4632-a7e4-9ae9510a8192" type="APIKIT:BAD_REQUEST">
+			<set-variable value="400" doc:name="Set http status" doc:id="1c2cefa5-9fa8-499b-92fb-513a3c9b5f99" variableName="httpstatus" />
+			<set-variable value="bad request" doc:name="Set error message" doc:id="602e9552-f34a-4074-8e1f-cc667f966970" variableName="errorMessage" />
+			<set-variable value="#[error.description]" doc:name="Set error description" doc:id="68761291-a312-4d10-bf11-45b2c4156b6e" variableName="errorDescription" />
+			<flow-ref doc:name="Flow Reference" doc:id="e1331415-a276-4d9b-8442-d421e598048f" name="SendErrorMail"/>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="56d9dd95-edee-4b29-9c47-06c13f569dd3" type="APIKIT:NOT_FOUND">
+			<set-variable value="400" doc:name="Set http status" doc:id="76548abc-a005-437f-a008-85e7c20f5a36" variableName="httpstatus" />
+			<set-variable value="bad request" doc:name="Set error message" doc:id="a29b910b-2b56-464d-8602-5617bb284f93" variableName="errorMessage" />
+			<set-variable value="#[error.description]" doc:name="Set error description" doc:id="f15cef19-92e2-45cf-95e9-409b312ba883" variableName="errorDescription" />
+			<flow-ref doc:name="Flow Reference" doc:id="ba32a911-33ca-4c61-b5c5-6ebe837353b6" name="SendErrorMail"/>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7b567c0e-7687-4be7-ad30-f151715380ab" type="HTTP:METHOD_NOT_ALLOWED">
+			<set-variable value="400" doc:name="Copy_of_Copy_of_Set http status" doc:id="6c4682a2-f4e6-473e-a103-55ec1bb8270f" variableName="httpstatus" />
+			<set-variable value="bad request" doc:name="Copy_of_Copy_of_Set error message" doc:id="4357637b-b1a7-42db-ad82-ef53b61f0255" variableName="errorMessage" />
+			<flow-ref doc:name="Flow Reference" doc:id="799d1eac-9ad8-4ff4-a8dd-e0b96e259496" name="SendErrorMail"/>
+		</on-error-propagate>
+	</error-handler>
+	<flow name="SendErrorMail" doc:id="828dace8-41a8-4d56-a1ea-17064ed594a2" >
+	<ee:transform doc:name="Transform Message" doc:id="0cee03e6-1107-4a6f-8e55-12de875f50d1" >
+<ee:message >
+<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+code : vars.httpstatus,
+message : vars.errorMessage,
+description : vars.errorDescription
+}]]></ee:set-payload>
+</ee:message>
+</ee:transform>
+		<email:send doc:name="Send" doc:id="2f983a98-d2a5-4fc8-8e4f-6e9de876b365" config-ref="Email_SMTP" fromAddress="umerbeyg17@gmail.com">
+			<email:to-addresses >
+				<email:to-address value="umer.beigh@apisero.com" />
+			</email:to-addresses>
+			<email:body contentType="text/plain" />
+		</email:send>
+	</flow>
+	
+</mule>

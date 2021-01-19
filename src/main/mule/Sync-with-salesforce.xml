@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="dd49c035-3409-4e65-9d9c-5bc0c654a53c" maxEntries="100" entryTtl="5" entryTtlUnit="HOURS" />
+	<flow name="DBSalesforceSync" doc:id="d8526646-6a9f-4030-adc0-6ced67958194" initialState="started">
+		<scheduler doc:name="Scheduler" doc:id="73547a88-3f0c-49b9-a593-534099106291" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<db:select doc:name="Select" doc:id="621dc056-2ffa-4d4e-abbf-da7a50f23aa2" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employee;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Copy_of_Copy_of_Transform Message" doc:id="940249c8-2b9b-467b-80cc-2ad24f2565c1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload map(item,index)->{
+	Name : item.Name,
+	ID__c : item.ID,
+	Email__c :item.Email,
+	Project__c: item.Project,
+	City__c:item.City,
+	manager_name__c: item.manager,
+	Age__c :item.Age
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="syncWithSalesforce" doc:id="6ef4a834-3a30-494b-822b-cd0863698042" >
+			<batch:process-records >
+				<batch:step name="isIdInSalesforce" doc:id="f4764ac1-187e-4edf-9a69-18fb35a588fd" >
+					<salesforce:query doc:name="Query" doc:id="74d6f271-72f3-4286-a85a-e6765b728231" config-ref="Salesforce_Config" target="exists" targetValue="#[sizeOf(payload as Array) &gt; 0]">
+						<salesforce:salesforce-query ><![CDATA[select Id__c from Emp__c where Id__c = ':cname'
+]]></salesforce:salesforce-query>
+						<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"cname" : payload.ID__c 
+}]]]></salesforce:parameters>
+					</salesforce:query>
+					<logger level="INFO" doc:name="Logger" doc:id="31911933-d27a-4d23-87ca-853b77ba6318" message="payload"/>
+				</batch:step>
+				<batch:step name="writeToSalesforce" doc:id="94929ff3-ded9-4157-9bc7-04bbb3bfbc11" acceptExpression="#[not vars.exists]">
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="3f205150-82ab-42a7-bbab-0b43fea12d55" size="3">
+						<salesforce:create type="Emp__c" doc:name="Create" doc:id="fd6e6bc7-970b-4efe-8a8a-19348abc202c" config-ref="Salesforce_Config"/>
+						<logger level="INFO" doc:name="Logger" doc:id="ecb756d9-1451-4ed5-8735-d499db778034" message="payload"/>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="updateSalesforce" doc:id="2935df36-1b9f-4923-97dc-6d43b9a852cb" >
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="979da3fa-fd63-4be1-b991-abaf78618acd" size="3">
+						<salesforce:upsert objectType="Emp__c" externalIdFieldName="ID__c" doc:name="Upsert" doc:id="9af4adb5-9f80-49ed-8a62-416cf1f03ab0" config-ref="Salesforce_Config"/>
+					</batch:aggregator>
+				</batch:step>
+			
+</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="02ce1f2e-b203-498a-b3dd-36db26471178" message="#[payload]" />
+			</batch:on-complete>
+		</batch:job>
+		<ee:transform doc:name="Transform Message" doc:id="f0761c14-2f45-4425-8a22-1bf807ae348e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "application synched"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	
+</flow>
+</mule>

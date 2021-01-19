@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="employee_tracking-suite.xml" />
+	<munit:test name="createEmployee-test" doc:id="ee1b9295-e452-4102-b2f0-b7a27dd6756d" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="5f23932f-fba4-4947-a5a7-60cc8dfac44d" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://createEmployeetest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://createEmployeetest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to createEmployee" doc:id="59912f9c-e96f-412f-9d32-c25b419c8e8b" name="createEmployee"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="f1dd0551-d195-4d48-8ba6-c77c92462b77" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import createEmployeetest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="getAllEmployees-test" doc:id="71b731a8-a877-4a8c-9ba3-767b691f2df8" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="f55005ed-59ed-4032-aecd-fe66c3fa56b5" >
+				<munit:payload value="#[readUrl('classpath://getAllEmployeestest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://getAllEmployeestest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://getAllEmployeestest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to getAllEmployees" doc:id="2014b1ad-4685-41ed-bee3-ceaf3fb34707" name="getAllEmployees"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="84b4b91b-ca5e-416b-979a-0c0a72437d2a" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import getAllEmployeestest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

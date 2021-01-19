@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="CheckUserPermission" doc:id="fc3d79bd-04d5-4206-bc07-49783123469f" >
+		<set-variable value="admin" doc:name="Set Variable" doc:id="bcba427d-2361-49b2-b220-4425407e1429" variableName="username"/>
+		<set-variable value="admin12" doc:name="Set Variable" doc:id="56df5f56-a74f-4464-9ee0-8153a5637350" variableName="pass"/>
+		<set-variable value="#[payload]" doc:name="store payload" doc:id="5dc9e4a9-735e-4dfa-9d29-cf6dfbe2ad3f" variableName="data"/>
+		<db:select doc:name="Select  access level from user table" doc:id="9d978500-acd0-4b7c-a198-337ff34334a5" config-ref="Database_Config">
+			<db:sql ><![CDATA[select access_level from user where username= :user and password=:pass]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	user:attributes.queryParams.username,
+	pass:attributes.queryParams.password
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="c8a29c18-1290-4aff-89a5-2475c813d6ae" >
+			<when expression='#[payload.access_level[0] =="admin"]'>
+				<set-payload value="yes" doc:name="user is admin" doc:id="959747f1-8277-4e78-8507-e44cfc7c8a28" />
+			</when>
+			<when expression='#[payload.access_level[0] =="user"]'>
+				<set-payload value="yes" doc:name="user" doc:id="5813b1e9-4327-49ef-b785-66b42657c547" />
+			</when>
+			<otherwise >
+				<set-payload value="no" doc:name="user doesnt have access" doc:id="f3fbf176-558d-46d8-b59a-fe3ec5a0823d" />
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="18dc3233-f365-4c79-8bba-f71dc9faef9d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getAllEmployees" doc:id="7efa93c1-c6ce-4f1e-9108-7e1907f047db" >
+		<flow-ref doc:name="Flow Reference" doc:id="52ec673b-3e98-4dec-8b33-12da54ad42b5" name="CheckUserPermission"/>
+		<choice doc:name="Choice" doc:id="1895cea9-9237-4fec-bf95-12cf52a7d37c" >
+			<when expression='#[payload =="yes"]'>
+				<db:select doc:name="Select" doc:id="804a6450-90a1-4e27-9a27-f393f2779335" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from employee;]]></db:sql>
+				</db:select>
+				<ee:transform doc:name="Transform Message" doc:id="e5cd5fc2-a9f5-4ec5-91a3-3010fa986153" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="049df604-6dc0-43c9-92c9-b9c085625837" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "username or password incorrect"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="createEmployee" doc:id="c0bdb695-4e6d-4dbf-b9a7-700e08ebfb12" >
+		<flow-ref doc:name="check user permission" doc:id="0746de7f-c568-4819-9c81-432dedf45005" name="CheckUserPermission"/>
+		<choice doc:name="Choice" doc:id="51232f12-b34e-4453-9570-ac942a59bdfa" >
+			<when expression='#[payload=="yes"]'>
+				<set-payload value="#[vars.data]" doc:name="original payload to create employee" doc:id="8881a902-f56d-4191-9da4-073aacaebb34" />
+				<db:insert doc:name="Insert" doc:id="968bb3af-ed5a-4c05-a28b-be9e3f1a1bcb" config-ref="Database_Config">
+			<db:sql><![CDATA[insert into employee values(:Id,:Name,:Email,:Age,:City,:Project,:manager)]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	Id : payload.ID,
+	Name : payload.Name,
+	Email : payload.Email,
+	Age : payload.Age,
+	City : payload.City,
+	Project : payload.Project,
+	manager : payload."manager name"
+	
+}]]]></db:input-parameters>
+		</db:insert>
+				<ee:transform doc:name="Transform Message" doc:id="e727d1a6-d439-47da-97d8-e3df8c1814e1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="f3202a24-b99a-467e-b11a-3c1a48a28e1a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "you dont have permission"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="delete" doc:id="873fedea-8f13-4bcf-be17-baee4f8e213b" >
+		<http:listener doc:name="Listener" doc:id="6c92b106-32ed-4b59-9523-24ead52f5351" config-ref="HTTP_Listener_config" path="t13"/>
+		<set-variable value="#[attributes.uriParams.id]" doc:name="Set Variable" doc:id="79b1750e-a561-4fed-8b40-b2d3f23c8ffa" variableName="id"/>
+		<flow-ref doc:name="Flow Reference" doc:id="7e78e845-c438-40b3-b259-1966a1371453" name="CheckUserPermission"/>
+		<choice doc:name="Choice" doc:id="ff43894a-f17e-4d98-a6b4-024f712d4063" >
+			<when expression='#[payload == "yes"]'>
+				<db:delete doc:name="Delete" doc:id="11ad954f-4557-4a75-aba8-1f3e16baa940" config-ref="Database_Config">
+					<db:sql ><![CDATA[delete from employee where Id=:id]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	id : vars.id
+}]]]></db:input-parameters>
+				</db:delete>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="bebf42fb-9913-4291-a47e-d708d8bec814" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "you dont have permission "
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="updateEmployee" doc:id="038dbfad-7fcf-4423-a7b4-5411bccb6d73" >
+		<set-variable value="#[attributes.uriParams.id]" doc:name="Set Variable" doc:id="94fdb8b0-b7ba-404d-a6dc-da75ccf6426c" variableName="id"/>
+		<flow-ref doc:name="Flow Reference" doc:id="f92169c6-8576-47f3-8f89-61900bdee161" name="CheckUserPermission"/>
+		<choice doc:name="Choice" doc:id="deecc864-1430-4f6f-95d2-08a9eb8d9646" >
+			<when expression='#[payload == "yes"]'>
+				<set-payload value="#[vars.data]" doc:name="Set Payload" doc:id="0eabed75-e428-4a8d-aaff-13cb1f6bbcdc" />
+				<db:update doc:name="Update" doc:id="a24a02e7-88ff-4f37-8473-93bd96ce5d2b" config-ref="Database_Config">
+					<db:sql ><![CDATA[ update employee set Project= :Project,manager=:manager where Id=:ID]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	Project :payload.project,
+	manager : payload."manager name",
+	ID : vars.id
+}]]]></db:input-parameters>
+				</db:update>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="0d4d370c-f371-4433-b825-0034ebb4bce4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "you dont have peermission"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="7109c3dc-ae62-4151-86b3-77efa5e2b490" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

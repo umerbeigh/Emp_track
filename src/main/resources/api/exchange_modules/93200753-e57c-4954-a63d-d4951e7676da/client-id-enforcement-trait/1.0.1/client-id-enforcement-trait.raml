@@ -1,0 +1,23 @@
+#%RAML 1.0 Trait
+displayName: Trait
+queryParameters:
+  username:
+    description: username of employee
+    type: string
+    required: true
+  password:
+    type: string
+    required: true
+
+headers:
+  client_id:
+    type: string
+    required: true
+  client_secret:
+    type: string
+    required: true
+responses: 
+      401:
+        description: Unauthorized or invalid client application credentials
+      500:
+        description: Bad response from authorization server/error

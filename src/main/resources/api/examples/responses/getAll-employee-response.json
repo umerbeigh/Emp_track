@@ -1,0 +1,20 @@
+[{
+  "ID": "API567",
+  "Name" : "manish",
+  "Email" : "manish@gmail.com",
+  "Age" : 23,
+  "City" : "jammu",
+  "Project" : "internal",
+  "manager name" : "santosh"
+},
+
+{
+  "ID": "API564",
+  "Name" : "umer beigh",
+  "Email" : "beygumer@gmail.com",
+  "Age" : 23,
+  "City" : "srinagar",
+  "Project" : "calix",
+  "manager name" : "santosh"
+}
+]
